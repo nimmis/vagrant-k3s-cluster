@@ -19,3 +19,8 @@ spec:
         backend:
           serviceName: coffee-svc
           servicePort: 80
+      - path: /
+        backend:
+          serviceName: cafe-svc
+          servicePort: 80
+
