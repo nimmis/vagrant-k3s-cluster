@@ -20,6 +20,32 @@ if plugin_installed === true
   exec "vagrant #{ARGV.join' '}"
 end
 
+
+# Defaults for config options defined in CONFIG
+$num_nodes = 1
+$master_name = "master"
+$node_prefix = "node-"
+
+$http_port = 8080
+$https_port = 8443
+
+
+FILES_PATH= File.join(File.dirname(__FILE__), "files")
+CONFIG = File.join(File.dirname(__FILE__), "config.rb")
+
+# Attempt to apply the deprecated environment variable NUM_INSTANCES to
+# $num_instances while allowing config.rb to override it
+if ENV["NUM_INSTANCES"].to_i > 0 && ENV["NUM_INSTANCES"]
+  $num_instances = ENV["NUM_INSTANCES"].to_i
+end
+
+if File.exist?(CONFIG)
+  require CONFIG
+end
+
+
+
+
 Vagrant.configure("2") do |config|
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
@@ -76,28 +102,33 @@ Vagrant.configure("2") do |config|
   # View the documentation for the provider you are using for more
   # information on available options.
 
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-  # documentation for more information about their specific syntax and use.
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   apt-get update
-  #   apt-get install -y apache2
-  # SHELL
-  config.vm.network "forwarded_port", guest: 6443, host: 6443, host_ip: "127.0.0.1"
+  (1..$num_nodes).each do |i|
 
-  config.vm.provision "shell", inline: <<-SHELL
-    apk update
-    apk  add -u  apk-tools
-    apk add curl
-    cat <<\EOF >>/etc/motd
-               ,        ,
-   ,-----------|'------'| |\    ____
-  /.           '-'@  o|-' | |  /___ \
- |/|             | .. |   | | __ __) | ____
-   |   .________.'----'   | |/ /|__ < / __/
-   |  ||        |  ||     |   < ___) |\__ \
-   \__|'        \__|'     |_|\_\_____/____/
-EOF
-    curl -sfL https://get.k3s.io |  sh -
-  SHELL
+    if i == 1 then
+      $vm_name= $master_name
+    else
+      $vm_name="%s-%02d" % [$node_prefix, i-1]
+    end
+
+    config.vm.define $vm_name do | config |
+
+      if i == 1 then
+
+        config.vm.network "forwarded_port", guest: 6443, host: 6443, host_ip: "127.0.0.1"
+         
+        if $http_port > 0 then
+          config.vm.network "forwarded_port", guest: 80, host: $http_port, host_ip: "127.0.0.1"
+        end
+
+        if $https_port > 0 then
+          config.vm.network "forwarded_port", guest: 443, host: $https_port, host_ip: "127.0.0.1"
+        end
+
+        config.vm.hostname = "master"
+        vm_name = "master"
+        config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
+        config.vm.provision :shell, inline: "/tmp/user-data/install.sh micro-server", :privileged => true
+      end
+    end
+  end
 end
