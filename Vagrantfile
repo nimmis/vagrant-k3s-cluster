@@ -7,7 +7,7 @@
 # you're doing.
 
 # --- Check for missing plugins
-required_plugins = %w( vagrant-alpine vagrant-timezone )
+required_plugins = %w( vagrant-alpine vagrant-timezone vagrant-sudo-rsync)
 plugin_installed = false
 required_plugins.each do |plugin|
   unless Vagrant.has_plugin?(plugin)
@@ -22,13 +22,14 @@ end
 
 
 # Defaults for config options defined in CONFIG
-$num_nodes = 1
+$num_nodes = 2
 $master_name = "master"
-$node_prefix = "node-"
+$node_prefix = "node"
 
 $http_port = 8080
 $https_port = 8443
 
+$network = 
 
 FILES_PATH= File.join(File.dirname(__FILE__), "files")
 CONFIG = File.join(File.dirname(__FILE__), "config.rb")
@@ -97,6 +98,7 @@ Vagrant.configure("2") do |config|
   
      # Customize the amount of memory on the VM:
      vb.memory = "1024"
+     vb.cpus = 2
    end
   #
   # View the documentation for the provider you are using for more
@@ -126,8 +128,14 @@ Vagrant.configure("2") do |config|
 
         config.vm.hostname = "master"
         vm_name = "master"
+        config.vm.network "private_network", ip: "192.168.50.10"
         config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
-        config.vm.provision :shell, inline: "/tmp/user-data/install.sh micro-server", :privileged => true
+        # config.vm.provision :shell, inline: "/tmp/user-data/install.sh micro-server", :privileged => true
+      else
+        config.vm.hostname = $vm_name
+        vm_name = $vm_name
+        config.vm.network "private_network", ip: "192.168.50.#{i+9}"
+        config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
       end
     end
   end
