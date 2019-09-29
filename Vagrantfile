@@ -6,6 +6,8 @@
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 
+require 'fileutils'
+
 # --- Check for missing plugins
 required_plugins = %w( vagrant-alpine vagrant-timezone vagrant-sudo-rsync)
 plugin_installed = false
@@ -29,7 +31,7 @@ $node_prefix = "node"
 $http_port = 8080
 $https_port = 8443
 
-$network = 
+$enable_serial_logging = false
 
 FILES_PATH= File.join(File.dirname(__FILE__), "files")
 CONFIG = File.join(File.dirname(__FILE__), "config.rb")
@@ -57,6 +59,7 @@ Vagrant.configure("2") do |config|
   #config.vm.box = "alpine/alpine64"
   #config.vm.box_version = "3.6.0"
   config.vm.box = "generic/alpine39"
+  #config.vm.box = "ubuntu/bionic64"
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
@@ -98,7 +101,7 @@ Vagrant.configure("2") do |config|
   
      # Customize the amount of memory on the VM:
      vb.memory = "1024"
-     vb.cpus = 2
+     vb.cpus = 1
    end
   #
   # View the documentation for the provider you are using for more
@@ -112,11 +115,25 @@ Vagrant.configure("2") do |config|
       $vm_name="%s-%02d" % [$node_prefix, i-1]
     end
 
+
+    if $enable_serial_logging
+      logdir = File.join(File.dirname(__FILE__), "log")
+      FileUtils.mkdir_p(logdir)
+
+      serialFile = File.join(logdir, "%s-serial.txt" % $vm_name)
+      FileUtils.touch(serialFile)
+
+      config.vm.provider :virtualbox do |vb, override|
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", serialFile]
+      end
+    end
+
     config.vm.define $vm_name do | config |
 
       if i == 1 then
 
-        config.vm.network "forwarded_port", guest: 6443, host: 6443, host_ip: "127.0.0.1"
+        config.vm.network "forwarded_port", guest: 6443, host: 6443, host_ip: "127.0.0.1", guest_ip: "192.168.50.10"
          
         if $http_port > 0 then
           config.vm.network "forwarded_port", guest: 80, host: $http_port, host_ip: "127.0.0.1"
@@ -130,12 +147,14 @@ Vagrant.configure("2") do |config|
         vm_name = "master"
         config.vm.network "private_network", ip: "192.168.50.10"
         config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
-        # config.vm.provision :shell, inline: "/tmp/user-data/install.sh micro-server", :privileged => true
+        config.vm.provision :shell, inline: "/tmp/user-data/install.sh micro-server", :privileged => true
       else
         config.vm.hostname = $vm_name
         vm_name = $vm_name
         config.vm.network "private_network", ip: "192.168.50.#{i+9}"
         config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
+        config.vm.provision :shell, inline: "/tmp/user-data/install.sh agent", :privileged => true
+
       end
     end
   end
