@@ -4,5 +4,5 @@ export TOKEN=$(ssh -t -o "StrictHostKeyChecking no"  -i /tmp/user-data/id_rsa va
 
 echo "192.168.50.10 master" >> /etc/hosts
 
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --server https://192.168.50.10:6443 --token $TOKEN" sh -s -
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent --flannel-iface=eth1 --server https://192.168.50.10:6443 --token $TOKEN" sh -s -
 

@@ -28,8 +28,16 @@ $num_nodes = 2
 $master_name = "master"
 $node_prefix = "node"
 
+# select os to install on {alpine,ubuntu,centos}
+# Sizes:
+# OS     Ver   Download  Installed  On disk
+# alpine  3.10  102Mb      0.7Gb     0.4Gb
+# ubuntu 18.04  307Mb      1.5Gb     1.2Gb
+# centos     7  382Mb      3.3Gb     1.4Gb
+$OS_VERSION = "alpine"
+
 $http_port = 8080
-$https_port = 8443
+$https_port = 8443   
 
 $enable_serial_logging = false
 
@@ -58,8 +66,19 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   #config.vm.box = "alpine/alpine64"
   #config.vm.box_version = "3.6.0"
-  config.vm.box = "generic/alpine39"
-  #config.vm.box = "ubuntu/bionic64"
+  if $OS_VERSION == "centos" then
+    config.vm.box = "centos/7"
+  else
+    if $OS_VERSION == "ubuntu" then
+      config.vm.box = "ubuntu/bionic64"
+    else
+      config.vm.box = "generic/alpine310"
+      $OS_VERSION = "alpine"
+    end
+  end
+  #config.vm.box = 
+  #config.vm.box = "coreos-#{$update_channel}"
+  #config.vm.box_url = "https://#{$update_channel}.release.core-os.net/amd64-usr/current/coreos_production_vagrant_virtualbox.json"
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
@@ -147,15 +166,19 @@ Vagrant.configure("2") do |config|
         vm_name = "master"
         config.vm.network "private_network", ip: "192.168.50.10"
         config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
-        config.vm.provision :shell, inline: "/tmp/user-data/install.sh micro-server", :privileged => true
+        config.vm.provision :shell, inline: "/tmp/user-data/install-#{$OS_VERSION}.sh micro-server", :privileged => true
+        #config.vm.provision :shell, inline: "/tmp/user-data/install-k8-ubuntu.sh micro-server", :privileged => true
       else
         config.vm.hostname = $vm_name
         vm_name = $vm_name
         config.vm.network "private_network", ip: "192.168.50.#{i+9}"
         config.vm.provision "file", source: "#{FILES_PATH}",  :destination => "/tmp/user-data"
-        config.vm.provision :shell, inline: "/tmp/user-data/install.sh agent", :privileged => true
+        config.vm.provision :shell, inline: "/tmp/user-data/install-#{$OS_VERSION}.sh agent", :privileged => true
 
       end
     end
   end
+
+  # setup nfs server
+
 end
