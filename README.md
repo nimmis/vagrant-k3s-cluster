@@ -2,37 +2,24 @@
 
 K3S minicluster on Alpine OS deployed with vagrant
 
+## manage cluster from host machine
 
-
-# manage cluster from host machine
-
-### getting kube config file from guest
+Get the kubernet config file from guest and save it in a file named k3s-confg
 
     ./get-config.sh <master name> > k3s-config
 
+You can then address the k3s by adding the flag --kubeconfig=./k3s-config to the kubectl command
 
-Example of content
-```apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJXRENCL3FBREFnRUNBZ0VBTUFvR0NDcUdTTTQ5QkFNQ01DTXhJVEFmQmdOVkJBTU1HR3N6Y3kxelpYSjIKWlhJdFkyRkFNVFUyT0RVMU5ETTBNakFlRncweE9UQTVNVFV4TXpNeU1qSmFGdzB5T1RBNU1USXhNek15TWpKYQpNQ014SVRBZkJnTlZCQU1NR0dzemN5MXpaWEoyWlhJdFkyRkFNVFUyT0RVMU5ETTBNakJaTUJNR0J5cUdTTTQ5CkFnRUdDQ3FHU000OUF3RUhBMElBQlB1OHJqUnZaUzgwbW5VMkNzNTZtSHdhSjdibzFkQm5nMTVuZWZ0UWtrQmYKRjRLN2pESzNWTjRydkswNE9rMVlaMWNROG9oMlY0b1hPRlVBWHZFRVRqeWpJekFoTUE0R0ExVWREd0VCL3dRRQpBd0lDcERBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUFvR0NDcUdTTTQ5QkFNQ0Ewa0FNRVlDSVFEQ1RvcDNCWHcrCjRNRlM3OEhqUm9yMFhTcjBES0lBWG82TzNLQnI5Z0t6aXdJaEFKd0Nwa25hNU5xSUNQU2V0K0ZDT1hSWVRKaksKald4L0lIZDJHb1M3Q0xtUQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-    server: https://localhost:6443
-  name: default
-contexts:
-- context:
-    cluster: default
-    user: default
-  name: default
-current-context: default
-kind: Config
-preferences: {}
-users:
-- name: default
-  user:
-    password: 81d25bbfce93a9bd5996fd8e8abd32f0
-    username: admin
-```
+    kubectl --kubeconfig=./k3s-config config view
 
+but the best way is to export a environmentvariable for kubectl so that i uses the configuration file by default
+
+    export KUBECONFIG="$(pwd)/k3s-config"
+    kubectl config view
+
+To remove the export and let kubectl use "default" settings again
+
+    unset KUBECONFIG
 
 ## getting kube config file from guest
 
@@ -59,29 +46,27 @@ users:
     Install-Script -Name install-kubectl -Scope CurrentUser -Force
     install-kubectl.ps1 [-DownloadLocation <path>]
 
-
 ## Using kubectl with k3s-config
 
     $> kubectl --kubeconfig=./k3s-config get nodes
     NAME     STATUS   ROLES    AGE   VERSION
     master   Ready    master   35m   v1.14.6-k3s.1
 
+## Deploy app with ingress access
 
-# Deply app with ingress access
+### Deploy cafe app
 
-## Deploy cafe app
+    kubectl apply -f examples/cafe.yaml 
 
-    kubectl --kubeconfig=./k3s-config apply -f examples/cafe.yaml 
+### Deploy cafe.example.com certificat
 
-## Deploy cafe.example.com certificat 
+    kubectl apply -f examples/cafe.example.com-secret.yaml
 
-    kubectl --kubeconfig=./k3s-config apply -f examples/cafe.example.com-secret.yaml
+### Deploy cafe.example.com w/o coffee and tea
 
-## Deploy cafe.example.com w/o coffee and tea
+    kubectl apply -f examples/cafe_only-ingress.yaml
 
-    kubectl --kubeconfig=./k3s-config apply -f examples/cafe_only-ingress.yaml
-
-## test access to app
+### test access to app
 
     C_PORT=8443
     C_HOST=127.0.0.1
@@ -96,16 +81,16 @@ users:
     
     curl --resolve cafe.example.com:$C_PORT:$C_HOST https://cafe.example.com:$C_PORT/coffee --insecure
 
-## add apps for coffee and tea
+### add apps for coffee and tea
 
-    kubectl --kubeconfig=./k3s-config apply -f examples/coffee.yaml
-    kubectl --kubeconfig=./k3s-config apply -f examples/tea.yaml
+    kubectl apply -f examples/coffee.yaml
+    kubectl apply -f examples/tea.yaml
 
-## deploy ingress with coffee and tea
+### deploy ingress with coffee and tea
 
-    kubectl --kubeconfig=./k3s-config apply -f examples/cafe_coffee_and_tea-ingress.yaml
+    kubectl apply -f examples/cafe_coffee_and_tea-ingress.yaml
 
-## check to see that url talks to different apps
+### check to see that url talks to different apps
 
     C_PORT=8443
     C_HOST=127.0.0.1
