@@ -110,3 +110,20 @@ To remove the export and let kubectl use "default" settings again
     Date: 15/Sep/2019:18:02:46 +0000
     URI: /coffee
     Request ID: 585bd3ea1ad1de6dddda9b0d5f99f6a7
+
+    curl --resolve cafe.example.com:$C_PORT:$C_HOST https://cafe.example.com:$C_PORT/tea --insecure
+
+    Server address: 10.42.0.6:80
+    Server name: coffee-bbd45c6-42mhw
+    Date: 15/Sep/2019:18:03:16 +0000
+    URI: /tea
+    Request ID: 585bd3ea1ad1de6dddda9b0d5f99f6a7
+    Server address: 10.42.0.6:80
+
+
+### remove demo application
+
+    kubectl delete namespace cafeexample
+
+
+  
