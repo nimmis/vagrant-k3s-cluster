@@ -1,7 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cafeexample
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cafe
+  namespace: cafeexample
 spec:
   replicas: 2
   selector:
@@ -22,6 +28,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cafe-svc
+  namespace: cafeexample
 spec:
   ports:
   - port: 80
